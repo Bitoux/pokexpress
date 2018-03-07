@@ -1,46 +1,41 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
+let express = require('express');
+let bodyParser = require('body-parser');
 
-var index = require('./routes/index');
-var users = require('./routes/users');
+// create express app
+let app = express();
 
-var app = express();
+// parse requests of content-type - application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: true }));
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
-
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
+// parse requests of content-type - application/json
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/', index);
-app.use('/users', users);
+// Configure the database
+let dbConfig = require('./config/database.config.js');
+let mongoose = require('mongoose');
 
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
+mongoose.Promise = global.Promise;
+
+mongoose.connect(dbConfig.url);
+
+mongoose.connection.on('error', function() {
+    console.log('Could not connect to the database. Exiting now...');
+    process.exit();
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+mongoose.connection.once('open', function() {
+    console.log("Successfully connected to the database");
 });
 
-module.exports = app;
+// define a simple route
+app.get('/', function(req, res){
+    res.json({"message": "Welcome to EasyNotes application. Take notes quickly. Organize and keep track of all your notes."});
+});
+
+// Require Pokemons route
+require('./routes/pokemon.route')(app);
+
+// listen for requests
+app.listen(3000, function(){
+    console.log("Server is listening on port 3000");
+});
